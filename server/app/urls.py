@@ -4,5 +4,5 @@ from . import views
 
 urlpatterns = [
 	url(r'^register/',views.NewUser),
-	url(r'^newAlarm/',views.NewTxtAlarm),
+	url(r'^newalarm/',views.NewTxtAlarm),
 ]

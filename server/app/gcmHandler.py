@@ -9,11 +9,6 @@ class gcmHandler():
 		self.gcmId = gcmId
 		self.data = data
 
-	def SimpleTextResponse(self):
-		gcm = GCM(api_key)
-		gcm.json_request(registration_ids = [self.gcmId],data = self.data)
-		return "came back"
-
 	def SendGCMtxt(self):
 		gcm = GCM(api_key)
 		response = gcm.json_request(registration_ids = self.gcmId,data = self.data)

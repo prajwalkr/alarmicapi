@@ -21,40 +21,41 @@ class Alarm():
 			try:
 				receiver = user.objects.get(phNum = int(receiver))	# check if receiver phone no. exists in DB.
 			except ObjectDoesNotExist:
-				response = {"result":'receiver absent'}			# return that it doesn't exist
+				response = 'receiver absent'				# return that it doesn't exist
 				return response
 			try:
 				sender = user.objects.get(phNum = int(sender))	# check if sender phone no. exists in DB.
 			except ObjectDoesNotExist:
-				response = {"result":'sender absent'}			# return that it doesn't exist
+				response = 'sender absent'					# return that it doesn't exist
 				return response
 			response = self.SendTxtAlarm()						# send the data
 		except:
-			response = {'result':'invalid request'}
+			response = 	'invalid request'
 			return response 									# some data missing => invalid request
 		return response											# response from SendTxt()
 
 	def SendTxtAlarm(self):
 		sender = self.data['from']								# sender
 		receiver = self.data['to']								# receiver
-		recipientId = user.objects.filter(phNum = int(receiver)).get().gcmId
+		recipientId = user.objects.filter(phNum = int(receiver)).gcmId
 		data = {
 			"time":self.data['time'],
 			"msg":self.data['msg'],
 			"to":receiver,
 			"from":sender,
 			"id":self.data['id'],
-			"nick":user.objects.filter(phNum = int(sender)).get().nick
+			"nick":user.objects.filter(phNum = int(sender)).nick,
+			"hide":self.data['hide']
 		} 
 		gcm = gcmHandler(recipientId,data)
 		response = gcm.SendGCMtxt()
 		if response == -1:
-			user.objects.filter(phNum = int(receiver)).delete()				# remove from DB.
-			response = {"result":"receiver absent"} 
+			#user.objects.filter(phNum = int(receiver)).delete()				# remove from DB.
+			response = "receiver absent"
 			return response
 		if response == 0:
-			return {"result":"alarm setting failed"}
-		return {"result":"success"}
+			return "alarm setting failed"
+		return "success"
 
 ############################# Sender's part over ##############################################
 
@@ -62,7 +63,6 @@ class Feedback():
 	def __init__(self,request):
 		try:
 			self.data = loads(request.body)						# load Json data into object
-			self.type = data_type(self)							# get whether the message has picture/video/text...
 		except:
 			self.data = self.type = None 						# Something went wrong...
 
@@ -130,9 +130,7 @@ def NewTxtAlarm(request):									# sending a new message
 	if new_alarm.type == None:							# Object creation failed...
 		return HttpResponse('invalid data')
 	response = new_alarm.TxtAlarm()						# Handle a text alarm
-	senderId = user.objects.filter(phNum = new_alarm.data['from']).gcmId		# sender ID to send back the response to
-	gcm = gcmHandler(senderId,data)				# create GCM handler object
-	gcm.SimpleTextResponse()					# send a simple json text response
+	return HttpResponse(response)
 
 def NewImgAlarm(request):
 	pass
