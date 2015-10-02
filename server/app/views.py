@@ -3,6 +3,7 @@ from django.core.exceptions import ObjectDoesNotExist
 from json import *
 from django.http import HttpResponse
 from gcmHandler import gcmHandler								# My own GCM Handler
+from django.views.decorators.csrf import *
 
 class Alarm():
 	def __init__(self,request,Type):
@@ -99,38 +100,37 @@ class User():
 		try:
 			User_data = loads(request.body)
 			self.gcmId = User_data['gcm']
-			self.phNo = User_data['pno']
-			self.nick = Uesr_data['nick']
+			self.phNo = int(User_data['pno'])
+			self.nick = User_data['nick']
 		except:
 			self.gcmId = self.phNo = self.nick = None
 
 ####################### New User registration part over ###############################
 
 ######################## Main part below which shall call the above appropriate functions ############
-
+@csrf_exempt
 def NewUser(request):
 	data = None 										# data to send
-	newUser = User(request)							# first time registration
+	newUser = User(request)								# first time registration
 	if newUser.gcmId == None:							# the data is invalid...
-		return HttpResponse('invalid')
-	elif user.objects.filter(phNum = newUser.phno, gcmId = newUser.gcmId).exists():   # user already exists
-		p = user.objects.filter(phNum = newUser.phno, gcmId = newUser.gcmId).get()
+		return HttpResponse('invalid data')
+	try:   												# user already exists
+		p = user.objects.filter(phNum = newUser.phno, gcmId = newUser.gcmId)
 		p.gcmId = newUser.gcmId
 		p.save()
 		return HttpResponse('success')						# success.
-	else:													# new user. 
-		user(newUser.phno,newUser.gcmId,newUser.nick).save()# store phone number and gcmId in DB.
+	except:													# new user. 
+		user(phNum = newUser.phNo,gcmId = newUser.gcmId,nick = newUser.nick).save()# store phone number and gcmId in DB.
 		return HttpResponse('success')						# success. 
-	return HttpResponse('invalid')
 
+@csrf_exempt
 def NewTxtAlarm(request):									# sending a new message
 	data = None   										# Initial data is none
 	new_alarm = Alarm(request,'text')					# Create a Python NewAlarm object
 	if new_alarm.type == None:							# Object creation failed...
-		data = {'result':'invalid data'}
-	else:												# Handle a text alarm
-		response = new_alarm.TxtAlarm()	
-	senderId = user.objects.filter(phNum = new_alarm.data['from']).get().gcmId		# sender ID to send back the response to
+		return HttpResponse('invalid data')
+	response = new_alarm.TxtAlarm()						# Handle a text alarm
+	senderId = user.objects.filter(phNum = new_alarm.data['from']).gcmId		# sender ID to send back the response to
 	gcm = gcmHandler(senderId,data)				# create GCM handler object
 	gcm.SimpleTextResponse()					# send a simple json text response
 
