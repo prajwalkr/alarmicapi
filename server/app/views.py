@@ -20,42 +20,44 @@ class Alarm():
 			receiver = self.data['to']				  			# receiver phone no.
 			try:
 				receiver = user.objects.get(phNum = int(receiver))	# check if receiver phone no. exists in DB.
-			except ObjectDoesNotExist:
+			except:
 				response = 'receiver absent'				# return that it doesn't exist
 				return response
 			try:
 				sender = user.objects.get(phNum = int(sender))	# check if sender phone no. exists in DB.
-			except ObjectDoesNotExist:
+			except:
 				response = 'sender absent'					# return that it doesn't exist
 				return response
 			response = self.SendTxtAlarm()						# send the data
 		except:
 			response = 	'invalid request'
-			return response 									# some data missing => invalid request
+			return -1 									# some data missing => invalid request
 		return response											# response from SendTxt()
 
 	def SendTxtAlarm(self):
 		sender = self.data['from']								# sender
 		receiver = self.data['to']								# receiver
-		recipientId = user.objects.filter(phNum = int(receiver)).gcmId
+		recipientId = user.objects.get(phNum = int(receiver)).gcmId
 		data = {
 			"time":self.data['time'],
 			"msg":self.data['msg'],
 			"to":receiver,
 			"from":sender,
 			"id":self.data['id'],
-			"nick":user.objects.filter(phNum = int(sender)).nick,
+			"nick":user.objects.get(phNum = int(sender)).nick,
 			"hide":self.data['hide']
-		} 
+		}
 		gcm = gcmHandler(recipientId,data)
 		response = gcm.SendGCMtxt()
+		'''if response == -5:
+
 		if response == -1:
 			#user.objects.filter(phNum = int(receiver)).delete()				# remove from DB.
 			response = "receiver absent"
 			return response
 		if response == 0:
-			return "alarm setting failed"
-		return "success"
+			return "alarm setting failed"'''
+		return response
 
 ############################# Sender's part over ##############################################
 
@@ -130,6 +132,10 @@ def NewTxtAlarm(request):									# sending a new message
 	if new_alarm.type == None:							# Object creation failed...
 		return HttpResponse('invalid data')
 	response = new_alarm.TxtAlarm()						# Handle a text alarm
+	if response == -2:
+		return HttpResponse(status = 404)
+	elif response == -1:
+		return HttpResponse(status = 300)
 	return HttpResponse(response)
 
 def NewImgAlarm(request):
